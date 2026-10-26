@@ -1,0 +1,91 @@
+# g1-voice services. Riva runs from NVIDIA's own scripts (services/riva/riva.sh start),
+# everything else is here. Select variants with COMPOSE_PROFILES in .env:
+#   nanollm (default VLM) | llamacpp (fallback VLM) | mock (no GPU, canned replies)
+#   piper (fallback TTS)  | whisper (fallback STT)
+# No service restarts on boot by default; auto-start = compose.autostart.yaml (needs approval).
+name: g1voice
+
+x-app: &app
+  image: ${APP_IMAGE:-g1voice/app:latest}
+  network_mode: host            # DDS + G1 mic multicast need the host network
+  working_dir: /work
+  restart: "no"
+  volumes:
+    - ./config:/work/config:ro
+    - ./gestures:/work/gestures:ro
+    - ./models:/work/models:ro
+    - ./logs:/work/logs
+    - ./third_party/g1_description:/work/third_party/g1_description:ro
+  environment:
+    G1V__G1__NETWORK_INTERFACE: ${G1_IFACE:-eth0}
+
+services:
+  action_server:
+    <<: *app
+    cpuset: "${ACTION_CPUSET:-7}"
+    volumes:
+      - ./config:/work/config:ro
+      - ./gestures:/work/gestures:ro
+      - ./third_party/g1_description:/work/third_party/g1_description:ro
+      - ./state:/work/state
+      - ./logs:/work/logs
+    # Dry-run unless you edit this command to add --live AND set G1_LIVE_CONFIRM
+    # (see docs/RUNBOOK.md "Going live"). Binds 127.0.0.1:8090 only.
+    command: ["python", "-m", "g1action.main", "--config", "config/action_server.yaml"]
+    environment:
+      G1_IFACE: ${G1_IFACE:-eth0}
+      G1_LIVE_CONFIRM: ${G1_LIVE_CONFIRM:-}
+
+  orchestrator:
+    <<: *app
+    cpuset: "${ORCH_CPUSET:-5-6}"
+    depends_on: [action_server]
+    command: ["python", "-m", "g1voice.main", "--config", "config/settings.yaml", "--wait", "600"]
+
+  vlm:
+    profiles: ["nanollm"]
+    image: g1voice/vlm:r35
+    runtime: nvidia
+    network_mode: host          # binds 127.0.0.1:8080
+    restart: "no"
+    volumes:
+      - ./models/VILA1.5-3b:/models/VILA1.5-3b:ro
+      - ./models/nano_llm_data:/data   # MLC-quantised weights + TRT vision engine are cached here
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=2)"]
+      interval: 10s
+      retries: 90
+      start_period: 120s
+
+  vlm_mock:
+    profiles: ["mock"]
+    <<: *app
+    command: ["python", "/app/services/vlm/openai_server.py", "--backend", "mock", "--port", "8080"]
+
+  llamacpp:
+    profiles: ["llamacpp"]
+    image: g1voice/llamacpp:r35
+    runtime: nvidia
+    network_mode: host
+    restart: "no"
+    volumes:
+      - ./models/llamacpp:/models/llamacpp:ro
+    command: ["-m", "/models/llamacpp/model.gguf", "--mmproj", "/models/llamacpp/mmproj.gguf",
+              "--host", "127.0.0.1", "--port", "8080", "-ngl", "99", "-c", "4096", "--parallel", "1"]
+
+  piper:
+    profiles: ["piper"]
+    <<: *app
+    image: g1voice/piper:latest
+    command: ["python", "/app/services/tts_piper/server.py", "--model",
+              "models/piper/en_US-lessac-medium.onnx", "--port", "8092"]
+
+  whisper:
+    profiles: ["whisper"]
+    image: g1voice/whisper:r35
+    runtime: nvidia
+    network_mode: host
+    restart: "no"
+    volumes:
+      - ./models/whisper:/models/whisper:ro
+    command: ["-m", "/models/whisper/ggml-base.en.bin", "--host", "127.0.0.1", "--port", "8091", "-t", "4"]

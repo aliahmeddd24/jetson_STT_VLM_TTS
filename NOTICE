@@ -1,0 +1,15 @@
+g1-voice
+Copyright 2026 the g1-voice authors. Licensed under the Apache License, Version 2.0.
+
+Design ideas (Silero VAD streaming loop with RMS pre-filter and lookback, streaming sentence
+chunker that flushes to TTS after 3 then 8 words, OpenAI-compatible streaming VLM client,
+YAML-overridable configuration, subprocess/HTTP isolation of TTS, benchmark harness) are taken
+from NVIDIA-AI-IOT/reachy-mini-jetson-assistant (Apache-2.0, Copyright NVIDIA CORPORATION).
+The code in this repository is an independent re-implementation; no source files were copied.
+If code is later copied from that repository, keep its Apache-2.0 header in those files.
+
+Third-party components fetched at bundle time keep their own licenses: CycloneDDS (EPL-2.0/EDL-1.0),
+unitree_sdk2 / unitree_sdk2_python / unitree_ros (BSD-3-Clause), whisper.cpp and llama.cpp (MIT),
+Silero VAD (MIT), Piper (MIT; piper-phonemize uses espeak-ng, GPL-3.0, isolated in its own
+container), NVIDIA Riva and NanoLLM containers (NVIDIA licenses), VILA1.5 (see model card),
+Qwen2.5-VL (see model card).

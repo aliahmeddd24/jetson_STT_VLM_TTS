@@ -1,0 +1,9 @@
+# LIVE robot control. Use only with the robot ready, a spotter present and the e-stop in hand:
+#   export G1_LIVE_CONFIRM=spotter-present-estop-in-hand
+#   docker compose -f compose.yaml -f compose.live.yaml up -d action_server
+# Back to dry-run:  unset G1_LIVE_CONFIRM; docker compose up -d --force-recreate action_server
+services:
+  action_server:
+    command: ["python", "-m", "g1action.main", "--config", "config/action_server.yaml", "--live"]
+    environment:
+      G1_LIVE_CONFIRM: ${G1_LIVE_CONFIRM:?set G1_LIVE_CONFIRM for live mode}

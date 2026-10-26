@@ -1,0 +1,21 @@
+# One utterance per line, for scripts/record_utterances.py. Mix of command, text and vision turns.
+Hello robot, how are you today?
+What is your name?
+Robot, wave.
+Robot, step to the left.
+Robot, step right.
+Stop.
+What am I holding?
+What color is my shirt?
+How many people do you see?
+Tell me a short joke.
+What can you do?
+Look at this and tell me what it is.
+Robot, wave to my friend please.
+What is the capital of France?
+Can you read what is written here?
+Thank you, that was great.
+What time of day does it look like outside?
+Describe the room.
+Robot, stop.
+Goodbye robot.

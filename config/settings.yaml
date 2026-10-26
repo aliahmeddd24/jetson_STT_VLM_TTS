@@ -1,0 +1,121 @@
+# g1-voice central configuration. Every value can be overridden with
+# G1V__SECTION__KEY=value environment variables (see g1voice/config.py).
+# Values marked VERIFY must be confirmed on the robot before relying on them.
+
+g1:
+  network_interface: "eth0"          # VERIFY in Phase 0: the NIC on 192.168.123.0/24
+  local_ip: ""                       # empty = auto-detect from network_interface
+  dds_domain: 0
+
+audio_in:
+  source: "g1_multicast"             # g1_multicast | wav | null
+  multicast_group: "239.168.123.161" # VERIFY with scripts/capture_g1_mic.py
+  multicast_port: 5555
+  sample_rate: 16000
+  wav_path: ""                       # used when source == wav
+  wav_realtime: true
+
+audio_out:
+  sink: "g1_speaker"                 # g1_speaker | wav | null
+  app_name: "g1voice"
+  chunk_ms: 100
+  lead_ms: 200                       # how far ahead of real time we may push audio
+  volume: null                       # null = leave robot volume unchanged
+  wav_path: "logs/tts_out.wav"
+  half_duplex_tail_ms: 300           # keep mic muted this long after playback ends
+
+vad:
+  backend: "silero"                  # silero | energy (energy = tests/mock runs only)
+  model_path: "models/silero_vad.onnx"
+  threshold: 0.5
+  rms_floor: 0.004                   # frames quieter than this skip the model (RMS of float audio)
+  chunk_samples: 512                 # 32 ms at 16 kHz (Silero v5 requirement)
+  lookback_ms: 300
+  min_speech_ms: 250
+  end_silence_ms: 500
+  max_utterance_s: 15
+
+stt:
+  backend: "riva"                    # riva | whisper_http | mock
+  riva_uri: "127.0.0.1:50051"
+  language: "en-US"
+  whisper_url: "http://127.0.0.1:8091/inference"
+
+vlm:
+  backend: "openai"                  # openai | mock
+  url: "http://127.0.0.1:8080/v1/chat/completions"
+  model: "vila1.5-3b"
+  max_tokens: 96
+  temperature: 0.4
+  timeout_s: 30
+  max_image_px: 448
+  system_prompt: >-
+    You are the voice of a friendly humanoid robot. Answer in one to three short
+    spoken sentences. No lists, no markdown, no emoji. If a gesture fits, you may
+    add exactly one tag from this list: {gestures}. Example: "Hello there! [gesture:wave]".
+    Never describe joint angles or movements in numbers.
+
+tts:
+  backend: "riva"                    # riva | piper_http | mock
+  riva_uri: "127.0.0.1:50051"
+  voice: "English-US.Female-1"       # VERIFY: list voices after Riva init
+  language: "en-US"
+  piper_url: "http://127.0.0.1:8092/synthesize"
+  sample_rate: 16000
+
+chunker:
+  first_chunk_words: 3
+  later_chunk_words: 8
+
+router:
+  vision_keywords: ["see", "look", "looking", "holding", "hold", "this", "that", "color",
+                    "colour", "wearing", "in front", "show", "read", "how many", "camera",
+                    "picture", "what is it", "who is"]
+
+camera:
+  source: "none"                     # none | zmq | http | v4l2
+  zmq_endpoint: "tcp://127.0.0.1:5555"   # e.g. avp_teleoperate image_server (VERIFY port, it can clash with nothing on loopback)
+  http_url: ""
+  v4l2_device: 0
+  max_age_s: 1.0                     # frames older than this are not attached
+
+commands:
+  enabled: true
+  use_partials: true
+  # Motion is only triggered when the utterance also contains the wake phrase.
+  # Default ON because overheard speech in a demo room must not move the robot.
+  require_wake_word_for_motion: true
+  wake_words: ["robot"]
+  stop_phrases: ["stop", "freeze", "halt"]
+  rules:
+    - {pattern: "\\bwave\\b", action: gesture, arg: wave}
+    - {pattern: "\\b(step|move) (to the )?left\\b", action: step, arg: left}
+    - {pattern: "\\b(step|move) (to the )?right\\b", action: step, arg: right}
+
+conversation:
+  require_wake_word: false
+  wake_words: ["robot"]
+
+action_server:
+  url: "http://127.0.0.1:8090"
+  heartbeat_hz: 10
+
+led:
+  enabled: true
+  colors:                            # RGB 0-255
+    idle: [0, 0, 0]
+    listening: [0, 80, 255]
+    thinking: [255, 160, 0]
+    speaking: [0, 255, 80]
+    moving: [255, 0, 255]
+    rejected: [255, 0, 0]
+
+privacy:
+  # GDPR: voices and images of people in the room are personal data.
+  # Defaults keep nothing on disk except timing metrics.
+  log_transcripts: false
+  save_audio: false
+  save_frames: false
+
+metrics:
+  path: "logs/metrics.jsonl"

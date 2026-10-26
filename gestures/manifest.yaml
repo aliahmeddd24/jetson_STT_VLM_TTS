@@ -1,0 +1,32 @@
+# Gesture allowlist. Only names listed here with enabled: true AND a clip that
+# passes validation can ever be played. llm_allowed: true lets the VLM trigger it
+# with a [gesture:name] tag; otherwise only the command grammar can.
+#
+# Workflow for a new clip (see docs/RUNBOOK.md "Gestures"):
+#   1. record with avp_teleoperate, copy the episode JSON here
+#   2. python scripts/convert_avp_clip.py episode.json --name wave --out gestures/clips/wave.json
+#   3. python scripts/validate_clip.py gestures/clips/wave.json      (needs the URDF below)
+#   4. set enabled: true, test in dry-run, then live with a spotter
+
+urdf: ../third_party/g1_description/g1_29dof.urdf   # VERIFY filename for your G1 revision
+
+rules:
+  limits_margin_rad: 0.05
+  max_joint_vel_rad_s: 2.5
+  neutral_tol_rad: 0.02
+  bubble_frame: torso_link
+  bubble_links: [left_wrist_yaw_link, right_wrist_yaw_link]
+  bubble_min: [-0.15, -0.55, -0.45]   # metres in torso frame: x forward, y left, z up
+  bubble_max: [0.65, 0.55, 0.55]
+
+gestures:
+  wave:
+    enabled: false        # no recorded clip yet
+    llm_allowed: true
+    file: clips/wave.json
+    speed_scale: 1.0
+  nod_arms:
+    enabled: false
+    llm_allowed: false
+    file: clips/nod_arms.json
+    speed_scale: 0.8

@@ -1,0 +1,41 @@
+# Action server configuration. The server refuses all motion until the values
+# marked REQUIRED are filled in with numbers confirmed on YOUR robot/firmware.
+
+bind_host: "127.0.0.1"
+bind_port: 8090
+dry_run: true                         # the CLI also defaults to dry-run; --live overrides
+heartbeat_timeout_s: 0.5
+state_dir: "state"
+operator_token_file: "state/operator_token"
+network_interface: "eth0"             # VERIFY
+
+mode_check:
+  # REQUIRED before live gestures: FSM ids in which upper-limb DDS control is valid
+  # (Locked Stance / Movement Control). Documentation conflicts (200 vs 500 etc.),
+  # so this is deliberately empty: every gesture is refused until you fill it in.
+  allowed_fsm_ids: []
+  allowed_fsm_modes: []               # optional extra filter; empty = not checked
+
+arm:
+  control_hz: 50
+  kp: 60.0                            # VERIFY against unitree arm_sdk example for your firmware
+  kd: 1.5
+  weight_joint_index: 29              # "not used joint" carries arm_sdk weight
+  ramp_in_s: 1.0
+  approach_s: 1.0                     # move from measured pose to clip start
+  ramp_out_s: 1.5                     # must stay <= 2.0
+  max_clip_s: 4.0
+  max_speed_scale: 1.0
+  cooldown_s: 2.0
+  start_pose_tolerance_rad: 0.35      # refuse if robot pose is too far from clip start
+  # Joints held at their measured position while a gesture plays (waist).
+  hold_joints: [12, 13, 14]
+
+loco:
+  max_vy: 0.2
+  max_duration_s: 2.0
+  step_vy: 0.15
+  step_duration_s: 1.0
+  resend_period_s: 0.3                # Move() expires after ~1 s; re-send while stepping
+
+manifest: "gestures/manifest.yaml"

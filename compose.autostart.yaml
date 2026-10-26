@@ -1,0 +1,7 @@
+# Auto-start on boot. Host-level behaviour change: apply only with the owner's approval.
+#   docker compose -f compose.yaml -f compose.autostart.yaml up -d
+# Rollback: docker compose -f compose.yaml up -d   (restart policy back to "no")
+services:
+  action_server: {restart: unless-stopped}
+  orchestrator: {restart: unless-stopped}
+  vlm: {restart: unless-stopped}

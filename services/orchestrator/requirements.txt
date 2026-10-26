@@ -1,0 +1,11 @@
+# Orchestrator + action server (Python 3.10, linux/arm64). Installed at image build time
+# on the workstation, so the Jetson never needs PyPI.
+numpy==1.26.4
+pyyaml==6.0.2
+requests==2.32.3
+onnxruntime==1.19.2          # CPU only: Silero VAD (and Piper when used)
+nvidia-riva-client==2.14.0
+pyzmq==26.2.0
+opencv-python-headless==4.10.0.84
+soxr==0.5.0.post1
+cyclonedds==0.10.2           # built against /opt/cyclonedds (CYCLONEDDS_HOME)
